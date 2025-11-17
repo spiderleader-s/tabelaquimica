@@ -205,169 +205,7 @@ const REACTIONS = {
   "Na,Cl,H2O": {name:"Salt in water (NaCl(aq))", type:"Solution", bond:"Ionic", state:"Aqueous"}
 };
 
-/* ----------------- AUDIO (Howler) ----------------- */
-const sounds = {
-  drag: new Howl({src:['https://cdn.jsdelivr.net/gh/spencercox/sfx/retro-blip-1.mp3'], volume:0.4}),
-  combine: new Howl({src:['https://cdn.jsdelivr.net/gh/spencercox/sfx/retro-success.mp3'], volume:0.6}),
-  waste: new Howl({src:['https://cdn.jsdelivr.net/gh/spencercox/sfx/retro-fail.mp3'], volume:0.5})
-};
-let soundEnabled = true;
 
-/* ----------------- Roots & state ----------------- */
-const elementListRoot = document.getElementById('elementList');
-const stage = document.getElementById('stage');
-const grid = document.getElementById('grid');
-const modalRoot = document.getElementById('modalRoot');
-const fx = document.getElementById('fxCanvas');
-const fxCtx = fx.getContext('2d');
-const search = document.getElementById('search');
-const exportBtn = document.getElementById('exportBtn');
-const themeToggle = document.getElementById('themeToggle');
-const soundToggle = document.getElementById('soundToggle');
-const collapseBtn = document.getElementById('collapseBtn');
-
-let instances = []; // placed objects on stage
-let history = [];
-
-/* ----------------- Helpers ----------------- */
-function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
-function familyClass(f){ if(!f) return 'f-Unknown'; if(f.includes('Noble')) return 'f-Noble'; if(f.includes('Alkali')) return 'f-Alkali'; if(f.includes('Alkaline')) return 'f-Alkaline'; if(f.includes('Metalloid')) return 'f-Metalloid'; if(f.includes('Transition')) return 'f-Transition'; if(f.includes('Post')) return 'f-Post'; if(f.includes('Halogen')) return 'f-Halogen'; if(f.includes('Lanthanide')) return 'f-Lanthanide'; if(f.includes('Actinide')) return 'f-Actinide'; if(f.includes('Nonmetal')) return 'f-Nonmetal'; return 'f-Unknown'; }
-
-/* ----------------- Pixel-art generator (blocky 8x8 scaled to 64) ----------------- */
-function blockyPatternFor(el){
-  // deterministic seed from z and symbol
-  let s = (el.z * 1103515245 + 12345) >>> 0;
-  for(let i=0;i<el.symbol.length;i++) s = (s ^ (el.symbol.charCodeAt(i) * 2654435761)) >>> 0;
-  let out='';
-  for(let i=0;i<64;i++){
-    s = (s ^ (s << 13)) >>> 0;
-    s = (s ^ (s >>> 17)) >>> 0;
-    s = (s ^ (s << 5)) >>> 0;
-    out += (s & 1) ? '1' : '0';
-    s = ((s >>> 1) | ((s & 1) << 31)) >>> 0;
-  }
-  return out;
-}
-function svgBlockIcon(el,size=64){
-  const pattern = blockyPatternFor(el);
-  const cell = Math.floor((size-8)/8);
-  const gap = 1;
-  const offset = 4;
-  const bg = el.color || '#999999';
-  let rects='';
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      const i = r*8+c;
-      const on = pattern[i] === '1';
-      const x = offset + c*(cell+gap);
-      const y = offset + r*(cell+gap);
-      const fill = on ? '#111111' : '#ffffff';
-      // make block color mix with base
-      rects += `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="0" fill="${on ? bg : '#ffffff'}" opacity="${on?1:0.18}" />`;
-    }
-  }
-  // Special-case Au (gold) as gold bar
-  if(el.symbol === 'Au'){
-    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'><rect rx='10' width='100%' height='100%' fill='${bg}' /><rect x='8' y='18' width='${size-16}' height='28' rx='4' fill='#D4AF37' stroke='#B28B2B' stroke-width='2'/><text x='50%' y='52%' font-size='14' font-weight='700' text-anchor='middle' fill='#5A3E0E'>Au</text></svg>`;
-    return encodeURIComponent(svg);
-  }
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'><rect rx='12' width='100%' height='100%' fill='${bg}'/>${rects}<text x='50%' y='14' font-size='12' text-anchor='middle' fill='white' font-weight='800'>${el.symbol}</text></svg>`;
-  return encodeURIComponent(svg);
-}
-
-/* ----------------- Variáveis ----------------- */
-const sidebar = document.getElementById('elementList');
-const stage = document.getElementById('stage'); // área principal
-let draggingElement = null; // para mobile touch
-
-/* ----------------- Render sidebar ----------------- */
-function renderSidebar(q=''){
-  sidebar.innerHTML = ''; // limpa a barra
-  const qq = (q||'').trim().toLowerCase();
-
-  for(const el of ELEMENTS){
-    // filtro de pesquisa
-    if(qq && !(el.name.toLowerCase().includes(qq) ||
-               el.symbol.toLowerCase().includes(qq) ||
-               (el.family && el.family.toLowerCase().includes(qq)))) continue;
-
-    // cria a div principal do elemento
-    const row = document.createElement('div');
-    row.className = 'element element-item';
-    row.draggable = true;
-    row.dataset.symbol = el.symbol;
-
-    // --- dragstart desktop ---
-    row.addEventListener('dragstart', ev => {
-      ev.dataTransfer.setData('application/json', JSON.stringify({from:'sidebar', symbol:el.symbol}));
-      ev.dataTransfer.effectAllowed = 'copy';
-      if(soundEnabled) sounds.drag.play();
-    });
-
-    // --- touchstart mobile ---
-    row.addEventListener('touchstart', ev => {
-      draggingElement = el.symbol;
-    });
-
-    // --- visual do elemento ---
-    const badge = document.createElement('div');
-    badge.className = 'badge ' + familyClass(el.family);
-    badge.innerHTML = `<img src="data:image/svg+xml;utf8,${svgBlockIcon(el,56)}" width="56" height="56" alt="${el.symbol}">`;
-
-    const meta = document.createElement('div');
-    meta.className = 'el-meta';
-    const nameEl = document.createElement('div');
-    nameEl.className = 'el-name';
-    nameEl.textContent = `${el.symbol} — ${el.name}`;
-    const sub = document.createElement('div');
-    sub.className = 'el-sub';
-    sub.textContent = `#${el.z} • ${el.family}`;
-
-    meta.appendChild(nameEl);
-    meta.appendChild(sub);
-    row.appendChild(badge);
-    row.appendChild(meta);
-
-    sidebar.appendChild(row); // adiciona à barra
-  }
-}
-
-/* ----------------- Stage drop ----------------- */
-stage.ondragover = ev => ev.preventDefault();
-stage.ondrop = ev => {
-  ev.preventDefault();
-  const j = ev.dataTransfer.getData('application/json');
-  if(!j) return;
-  try {
-    const p = JSON.parse(j);
-    if(p.from === 'sidebar'){
-      const el = ELEMENTS.find(x => x.symbol === p.symbol);
-      if(!el) return;
-      const rect = stage.getBoundingClientRect();
-      const x = Math.max(8, Math.min(rect.width-180, ev.clientX - rect.left - 40));
-      const y = Math.max(8, Math.min(rect.height-100, ev.clientY - rect.top - 30));
-      addInstance({type:'element', symbols:[el.symbol], el, x, y});
-    }
-  } catch(e){ console.error(e); }
-};
-
-/* ----------------- Touchend mobile ----------------- */
-window.addEventListener('touchend', ev => {
-  if(draggingElement){
-    const touch = ev.changedTouches[0];
-    const el = ELEMENTS.find(x => x.symbol === draggingElement);
-    if(el){
-      const rect = stage.getBoundingClientRect();
-      const x = Math.max(8, Math.min(rect.width-180, touch.clientX - rect.left - 40));
-      const y = Math.max(8, Math.min(rect.height-100, touch.clientY - rect.top - 30));
-      addInstance({type:'element', symbols:[el.symbol], el, x, y});
-    }
-    draggingElement = null;
-  }
-});
-
-/* ----------------- Inicializar ----------------- */
-renderSidebar(); // chama para mostrar os elementos na barra
 
 /* ----------------- Add instance & render ----------------- */
 function addInstance(obj){
@@ -390,7 +228,208 @@ function renderInstance(obj){
   } else if(obj.type === 'compound'){
     const cs = compoundSVG(obj);
     elDiv.innerHTML = `<div class="icon-64"><img src="data:image/svg+xml;utf8,${cs}" width="64" height="64"></div>
-      <div class="card-body"><div class="symbol">${obj.name}</div><div class="meta">${obj.kind} • ${obj.state||''}</div></div>`;
+      <div class="card-body"></* ----------------- HELPERS ----------------- */
+function uid() {
+  return '_' + Math.random().toString(36).substr(2, 9);
+}
+
+function familyClass(family) {
+  return `f-${family.replace(/\s/g, '')}`;
+}
+
+function createBitGrid(color, bits) {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 8;
+  const ctx = canvas.getContext('2d');
+  bits.forEach((row, y) => row.forEach((b, x) => { ctx.fillStyle = b ? color : 'transparent'; ctx.fillRect(x, y, 1, 1); }));
+  const img = document.createElement('img');
+  img.src = canvas.toDataURL();
+  img.className = 'icon-64';
+  return img;
+}
+
+/* ----------------- AUDIO ----------------- */
+const sounds = {
+  drag: new Howl({ src: ['sounds/drag.mp3'] }),
+  combine: new Howl({ src: ['sounds/combine.mp3'] }),
+  waste: new Howl({ src: ['sounds/waste.mp3'] })
+};
+
+/* ----------------- ESTADO ----------------- */
+let instances = [], history = [];
+let draggingElement = null, offset = { x: 0, y: 0 };
+let soundEnabled = true;
+
+/* ----------------- ELEMENTOS DOM ----------------- */
+const elementListRoot = document.querySelector('#elementList');
+const stage = document.querySelector('#stage');
+const grid = document.querySelector('#grid');
+const modalRoot = document.querySelector('#modalRoot');
+
+/* ----------------- RENDER SIDEBAR ----------------- */
+function renderSidebar(filter = '') {
+  elementListRoot.innerHTML = '';
+  ELEMENTS.filter(e => {
+    const term = filter.toLowerCase();
+    return e.name.toLowerCase().includes(term) ||
+           e.symbol.toLowerCase().includes(term) ||
+           e.family.toLowerCase().includes(term);
+  }).forEach(el => {
+    const div = document.createElement('div');
+    div.className = 'element';
+    div.dataset.symbol = el.symbol;
+    div.innerHTML = `
+      <div class="badge ${familyClass(el.family)}">${el.symbol}</div>
+      <div class="el-meta">
+        <div class="el-name">${el.name}</div>
+        <div class="el-sub">${el.family}</div>
+      </div>
+    `;
+    div.addEventListener('mousedown', startDrag);
+    div.addEventListener('touchstart', startDrag, { passive: false });
+    elementListRoot.appendChild(div);
+  });
+}
+
+/* ----------------- DRAG & DROP ----------------- */
+function startDrag(e) {
+  e.preventDefault();
+  const symbol = e.currentTarget.dataset.symbol;
+  const elData = ELEMENTS.find(el => el.symbol === symbol);
+  draggingElement = {
+    id: uid(),
+    data: elData,
+    x: (e.touches ? e.touches[0].clientX : e.clientX),
+    y: (e.touches ? e.touches[0].clientY : e.clientY)
+  };
+  offset.x = e.offsetX || 0;
+  offset.y = e.offsetY || 0;
+  document.addEventListener('mousemove', onDrag);
+  document.addEventListener('mouseup', endDrag);
+  document.addEventListener('touchmove', onDrag, { passive: false });
+  document.addEventListener('touchend', endDrag);
+  if (soundEnabled) sounds.drag.play();
+}
+
+function onDrag(e) {
+  if (!draggingElement) return;
+  e.preventDefault();
+  draggingElement.x = (e.touches ? e.touches[0].clientX : e.clientX) - offset.x;
+  draggingElement.y = (e.touches ? e.touches[0].clientY : e.clientY) - offset.y;
+  renderDragCard(draggingElement);
+}
+
+function endDrag(e) {
+  if (!draggingElement) return;
+  if (draggingElement.card) grid.removeChild(draggingElement.card);
+  const instance = { ...draggingElement, x: draggingElement.x, y: draggingElement.y };
+  instances.push(instance);
+  renderInstances();
+  draggingElement = null;
+  document.removeEventListener('mousemove', onDrag);
+  document.removeEventListener('mouseup', endDrag);
+  document.removeEventListener('touchmove', onDrag);
+  document.removeEventListener('touchend', endDrag);
+}
+
+/* ----------------- RENDER DRAG CARD ----------------- */
+function renderDragCard(el) {
+  if (!el.card) {
+    const card = document.createElement('div');
+    card.className = 'atom-card dragging';
+    card.innerHTML = `
+      <div class="icon-64" style="background:${el.data.color}">${el.data.symbol}</div>
+      <div class="card-body">
+        <div class="symbol">${el.data.symbol}</div>
+        <div class="meta">${el.data.name}</div>
+      </div>
+    `;
+    grid.appendChild(card);
+    el.card = card;
+  }
+  el.card.style.left = `${el.x}px`;
+  el.card.style.top = `${el.y}px`;
+}
+
+/* ----------------- RENDER INSTANCES ----------------- */
+function renderInstances() {
+  grid.innerHTML = '';
+  instances.forEach(inst => {
+    const card = document.createElement('div');
+    card.className = 'atom-card';
+    card.style.left = `${inst.x}px`;
+    card.style.top = `${inst.y}px`;
+    card.innerHTML = `
+      <div class="icon-64" style="background:${inst.data.color}">${inst.data.symbol}</div>
+      <div class="card-body">
+        <div class="symbol">${inst.data.symbol}</div>
+        <div class="meta">${inst.data.name}</div>
+      </div>
+    `;
+    makeCardDraggable(card, inst);
+    grid.appendChild(card);
+  });
+}
+
+/* ----------------- DRAG INSTANCES ----------------- */
+function makeCardDraggable(card, inst) {
+  let dragOffset = { x: 0, y: 0 };
+  function start(e) {
+    e.preventDefault();
+    draggingElement = inst;
+    dragOffset.x = (e.touches ? e.touches[0].clientX : e.clientX) - inst.x;
+    dragOffset.y = (e.touches ? e.touches[0].clientY : e.clientY) - inst.y;
+    card.classList.add('dragging');
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', stop);
+    document.addEventListener('touchmove', drag, { passive: false });
+    document.addEventListener('touchend', stop);
+    if (soundEnabled) sounds.drag.play();
+  }
+  function drag(e) {
+    if (!draggingElement) return;
+    draggingElement.x = (e.touches ? e.touches[0].clientX : e.clientX) - dragOffset.x;
+    draggingElement.y = (e.touches ? e.touches[0].clientY : e.clientY) - dragOffset.y;
+    card.style.left = `${draggingElement.x}px`;
+    card.style.top = `${draggingElement.y}px`;
+  }
+  function stop(e) {
+    if (!draggingElement) return;
+    card.classList.remove('dragging');
+    draggingElement = null;
+    document.removeEventListener('mousemove', drag);
+    document.removeEventListener('mouseup', stop);
+    document.removeEventListener('touchmove', drag);
+    document.removeEventListener('touchend', stop);
+  }
+  card.addEventListener('mousedown', start);
+  card.addEventListener('touchstart', start, { passive: false });
+}
+
+/* ----------------- MODAL ----------------- */
+function showModal(title, content) {
+  modalRoot.innerHTML = '';
+  const back = document.createElement('div');
+  back.className = 'modal-back';
+  back.onclick = closeModal;
+  const box = document.createElement('div');
+  box.className = 'modal';
+  box.innerHTML = `<h3>${title}</h3>${content}`;
+  back.appendChild(box);
+  modalRoot.appendChild(back);
+}
+
+function closeModal() {
+  modalRoot.innerHTML = '';
+}
+
+/* ----------------- BUSCA ----------------- */
+const searchInput = document.querySelector('#search');
+searchInput.addEventListener('input', e => renderSidebar(e.target.value));
+
+/* ----------------- INICIALIZAÇÃO ----------------- */
+renderSidebar();
+div class="symbol">${obj.name}</div><div class="meta">${obj.kind} • ${obj.state||''}</div></div>`;
   }
 
   grid.appendChild(elDiv);
