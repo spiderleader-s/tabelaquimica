@@ -1,0 +1,21 @@
+/* Simple styles for demo */
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 18px; background:#f5f6f7; color:#222; }
+.periodic { display:flex; gap:8px; margin-bottom:12px; }
+.element {
+  width:56px; height:56px; border-radius:6px;
+  border:1px solid #ccc; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(#fff,#eee); cursor:grab; user-select:none; font-weight:700;
+  box-shadow:0 2px 0 rgba(0,0,0,0.04);
+}
+.main {
+  width:900px; height:480px; border:2px dashed #9aa2ad; border-radius:8px;
+  background:linear-gradient(#0f1720,#071018); color:#fff; position:relative; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+}
+.dropped {
+  position:absolute;
+  transform:translate(-50%,-50%); pointer-events:auto; touch-action:none;
+  will-change:transform, left, top;
+}
+/* small visual for dropped images when no transparency */
+.dropped img { display:block; }
