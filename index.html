@@ -4,24 +4,34 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>⚛️ Tabela Química</title>
+
+  <!-- Font + UI CDN -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="style.css">
+
+  <!-- Howler.js para som (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/howler@2.2.3/dist/howler.min.js"></script>
 </head>
 <body>
-  <div class="topbar">
+  <header class="topbar">
     <div class="brand">⚛️ Tabela Química</div>
-    <div class="subtitle">Arraste da barra esquerda — clique para detalhes — junte para reagir</div>
+    <div class="subtitle">Arraste elementos — junte para reagir — tema e som configuráveis</div>
     <div style="flex:1"></div>
     <button id="themeToggle" class="btn ghost">Tema</button>
-    <button id="exportBtn" class="btn">Exportar histórico</button>
-  </div>
+    <button id="soundToggle" class="btn ghost">Som</button>
+    <button id="exportBtn" class="btn">Exportar</button>
+  </header>
 
   <div class="app">
     <aside class="sidebar" id="sidebar">
       <div class="sb-top">
-        <input id="search" placeholder="Pesquisar nome ou símbolo..." />
+        <input id="search" placeholder="Pesquisar nome, símbolo ou grupo..." />
         <button id="collapseBtn" class="btn ghost small">◀</button>
       </div>
-      <div id="elementList" class="list"></div>
+
+      <div id="elementList" class="list" aria-live="polite"></div>
+
       <div class="sb-foot">Produced by: Genius</div>
     </aside>
 
@@ -30,9 +40,9 @@
     </main>
   </div>
 
-  <canvas id="fxCanvas"></canvas>
-  <div id="modalRoot"></div>
+  <canvas id="fxCanvas" class="fx-canvas"></canvas>
+  <div id="modalRoot" aria-hidden="true"></div>
 
-  <script src="script.js"></script>
+  <script src="script.js" defer></script>
 </body>
 </html>
