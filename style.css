@@ -1,4 +1,3 @@
-```css
 :root{
   --bg:#ffffff; --muted:#56606e; --accent:#3b82f6; --card:#ffffff;
   --radius:12px; --shadow:0 10px 30px rgba(10,20,40,0.06);
@@ -32,7 +31,25 @@ html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial
 .grid{position:relative;min-height:100%}
 
 /* Atom on stage */
-.atom{position:absolute;min-width:80px;height:80px;padding:8px;border-radius:12px;background:#888;border:1px solid rgba(255,255,255,0.06);box-shadow:0 10px 26px rgba(8,16,30,0.06);display:flex;align-items:center;justify-content:center;cursor:grab;user-select:none;font-weight:800;color:#111;font-size:18px}
+.atom{
+  position:absolute;
+  min-width:80px;
+  height:80px;
+  padding:8px;
+  border-radius:12px;
+  background:#888;
+  border:1px solid rgba(255,255,255,0.06);
+  box-shadow:0 10px 26px rgba(8,16,30,0.06);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-weight:700;
+  text-align:center;
+  cursor:grab;
+  user-select:none;
+}
+.atom:active{cursor:grabbing}
 .atom.dragging{opacity:0.85;transform:scale(.98)}
 .atom .label{pointer-events:none}
 
@@ -74,4 +91,3 @@ body[data-theme="dark"] .element{background:linear-gradient(90deg,rgba(255,255,2
   .stage{padding:12px}
   .atom{min-width:70px;height:70px}
 }
-```
