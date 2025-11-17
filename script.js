@@ -1,13 +1,3 @@
-/* ====================================================
-   script.js — Tabela Química avançada
-   - 118 elementos (ELEMENTS)
-   - REACTIONS: ~70 combinações reais (REACTIONS)
-   - geração dinâmica SVG 64x64 + 8x8 "64-bits" pattern
-   - drag & drop, combinações, modal com prótons/neutrons/elétrons
-   ==================================================== */
-
-/* ------------------ ELEMENTS (118) ------------------ */
-/* Campos: z, symbol, name, family, mass, desc */
 const ELEMENTS = [
 {"z":1,"symbol":"H","name":"Hidrogênio","family":"Nonmetal","mass":1.008,"desc":"O mais leve dos elementos, gás diatômico."},
 {"z":2,"symbol":"He","name":"Hélio","family":"Noble","mass":4.0026,"desc":"Gás nobre inerte."},
@@ -79,8 +69,7 @@ const ELEMENTS = [
 {"z":68,"symbol":"Er","name":"Érbio","family":"Lanthanide","mass":167.26,"desc":"Usado em fibra óptica."},
 {"z":69,"symbol":"Tm","name":"Túlio","family":"Lanthanide","mass":168.93,"desc":"Raro e caro."},
 {"z":70,"symbol":"Yb","name":"Itérbio","family":"Lanthanide","mass":173.05,"desc":"Usado em ligas."},
-{"z":71,"symbol":"Lu","name":"Lutécio","family":"Lanthanide","mass":174.97,"desc":"Raro."""},
-// NOTE: continuing elements 72..118
+{"z":71,"symbol":"Lu","name":"Lutécio","family":"Lanthanide","mass":174.97,"desc":"Raro."},
 {"z":72,"symbol":"Hf","name":"Háfnio","family":"Transition","mass":178.49,"desc":"Usado em reatores nucleares."},
 {"z":73,"symbol":"Ta","name":"Tântalo","family":"Transition","mass":180.95,"desc":"Usado em capacitores."},
 {"z":74,"symbol":"W","name":"Tungstênio","family":"Transition","mass":183.84,"desc":"Ponto de fusão muito alto."},
@@ -130,9 +119,6 @@ const ELEMENTS = [
 {"z":118,"symbol":"Og","name":"Oganessônio","family":"Noble","mass":294,"desc":"Sintético, provável nobre."}
 ];
 
-/* ------------------ REACTIONS / COMBINATIONS (≈70) ------------------ */
-/* Chaves: símbolos separados por vírgula e ordenados ou com multiplicidade.
-   O gerador de chaves aceita "H,O" e "H,H,O" (para 2H + O) */
 const REACTIONS = {
   "H,O": {name:"Água (H₂O)", type:"Molécula", bond:"Covalente polar", energy:-285, state:"Líquido"},
   "H,H,O": {name:"Água (H₂O) (2:1)", type:"Molécula", bond:"Covalente polar", energy:-285, state:"Líquido"},
@@ -185,23 +171,19 @@ const REACTIONS = {
   "Cu,SO4": {name:"Sulfato de cobre (CuSO₄) — representativo", type:"Sal", bond:"Iônico", energy:null, state:"Sólido"},
   "Pb,SO4": {name:"Sulfato de chumbo (PbSO₄) — representativo", type:"Sal", bond:"Iônico", energy:null, state:"Sólido"},
   "Ag,NO3,Cl": {name:"Reação AgNO₃ + Cl- -> AgCl (precipitado) — representativo", type:"Precipitado", bond:"Iônico", energy:null, state:"Sólido"},
-  // Ligas adicionais
   "Fe,Ni,Cr": {name:"Aço inox (Fe-Ni-Cr) simplificado", type:"Liga", bond:"Metálico", energy:null, state:"Sólido"},
   "Ti,Al,V": {name:"Liga Ti-Al-V (representativa)", type:"Liga", bond:"Metálico", energy:null, state:"Sólido"},
   "Cu,Au": {name:"Ouro-cobre (liga)", type:"Liga", bond:"Metálico", energy:null, state:"Sólido"},
   "Sn,Pb": {name:"Liga de estanho-chumbo (solder-like)", type:"Liga", bond:"Metálico", energy:null, state:"Sólido"},
-  // gases e diatômicos
   "O,O": {name:"Oxigênio (O₂)", type:"Gás diatômico", bond:"Covalente dupla", energy:null, state:"Gás"},
   "Cl,Cl": {name:"Cloro (Cl₂)", type:"Gás diatômico", bond:"Covalente", energy:null, state:"Gás"},
   "Br,Br": {name:"Bromo (Br₂)", type:"Líquido diatômico", bond:"Covalente", energy:null, state:"Líquido"},
   "I,I": {name:"Iodo (I₂)", type:"Sólido diatômico", bond:"Covalente", energy:null, state:"Sólido"},
-  // misc
   "C,C": {name:"Diamante/Carvão (forma de carbono)", type:"Alótropo", bond:"Covalente", energy:null, state:"Sólido"},
   "N,H,H,H": {name:"Amoníaco (NH₃) forma reduzida", type:"Base", bond:"Covalente", energy:null, state:"Gás"},
   "Na,CO3": {name:"Carbonato de sódio (Na₂CO₃) — representativo", type:"Sal", bond:"Iônico", energy:null, state:"Sólido"}
 };
 
-/* --------------- App state & roots --------------- */
 const elementListRoot = document.getElementById('elementList');
 const stage = document.getElementById('stage');
 const grid = document.getElementById('grid');
@@ -213,10 +195,9 @@ const exportBtn = document.getElementById('exportBtn');
 const themeToggle = document.getElementById('themeToggle');
 const collapseBtn = document.getElementById('collapseBtn');
 
-let instances = []; // on-stage items
+let instances = []; 
 let history = [];
 
-/* --------------- Helpers: UID & family class --------------- */
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function familyClass(f){
   if(!f) return 'f-Unknown'; if(f.includes('Noble')) return 'f-Noble';
@@ -227,9 +208,7 @@ function familyClass(f){
   if(f.includes('Nonmetal')) return 'f-Nonmetal'; return 'f-Unknown';
 }
 
-/* --------------- Deterministic 8x8 pattern (64-bits) --------------- */
 function patternFor(el){
-  // simple xorshift seeded by atomic number + symbol
   let seed = (el.z * 1664525 + 1013904223) >>> 0;
   for(let i=0;i<el.symbol.length;i++) seed = (seed ^ el.symbol.charCodeAt(i) * 2654435761) >>> 0;
   let s='';
@@ -243,16 +222,13 @@ function patternFor(el){
   return s;
 }
 
-/* --------------- SVG pixel-icon generator (64x64) --------------- */
 function svgIconFor(el, size=64){
-  // color palette by family
   const palette = {
     'Nonmetal':'#ef4444','Noble':'#60a5fa','Alkali':'#fb923c','Alkaline':'#fde047','Metalloid':'#a78bfa',
     'Transition':'#06b6d4','Post':'#f97316','Halogen':'#34d399','Lanthanide':'#f472b6','Actinide':'#fb7185','Unknown':'#94a3b8'
   };
   const base = palette[el.family] || '#94a3b8';
 
-  // special gold bar for Ouro
   if(el.symbol === 'Au'){
     const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'>
       <rect x='6' y='18' rx='8' width='${size-12}' height='${size-36}' fill='#D4AF37' stroke='#b68f2b' stroke-width='2'/>
@@ -262,8 +238,7 @@ function svgIconFor(el, size=64){
   }
 
   const p = patternFor(el);
-  // draw background rounded rectangle in base color
-  const cell = Math.floor((size - 10) / 8); // cell size
+  const cell = Math.floor((size - 10) / 8); 
   const gap = Math.max(1, Math.floor((size - 10 - 8*cell) / 7));
   let rects = '';
   const offset = 5;
@@ -284,9 +259,7 @@ function svgIconFor(el, size=64){
   return encodeURIComponent(svg);
 }
 
-/* --------------- Compound SVG generator (simple) --------------- */
 function compoundSVG(obj){
-  // create a combined small icon using first two symbols or pattern
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'>
     <rect rx='10' width='100%' height='100%' fill='#f3f4f6'/>
     <circle cx='22' cy='32' r='12' fill='#c7d2fe'/>
@@ -297,7 +270,6 @@ function compoundSVG(obj){
   return encodeURIComponent(svg);
 }
 
-/* --------------- Render sidebar --------------- */
 function renderSidebar(filter=''){
   elementListRoot.innerHTML = '';
   const q = (filter||'').trim().toLowerCase();
@@ -315,7 +287,6 @@ function renderSidebar(filter=''){
   }
 }
 
-/* --------------- Stage drop -> create instance --------------- */
 stage.ondragover = ev => ev.preventDefault();
 stage.ondrop = ev => {
   ev.preventDefault();
@@ -331,7 +302,6 @@ stage.ondrop = ev => {
   }
 };
 
-/* --------------- Add instance & render --------------- */
 function addInstance(obj){
   obj.id = uid();
   instances.push(obj);
@@ -357,7 +327,6 @@ function renderInstance(obj){
   makeDraggable(elDiv, obj);
 }
 
-/* --------------- bitgrid small svg --------------- */
 function renderBitGrid(el){
   const p = patternFor(el);
   let s = `<svg width="64" height="28" viewBox="0 0 64 28" xmlns="http://www.w3.org/2000/svg">`;
@@ -376,7 +345,6 @@ function renderBitGrid(el){
   return s;
 }
 
-/* --------------- make draggable (mouse + touch) --------------- */
 function makeDraggable(dom, instance){
   let dragging=false, offsetX=0, offsetY=0;
   function down(e){
@@ -412,7 +380,6 @@ function makeDraggable(dom, instance){
   dom.addEventListener('dblclick', ()=> viewInstance(instance));
 }
 
-/* --------------- helper: get DOM rect relative to stage --------------- */
 function getDomRectForId(id){
   const el = grid.querySelector(`[data-id="${id}"]`);
   if(!el) return null;
@@ -422,7 +389,6 @@ function getDomRectForId(id){
 }
 function rectOverlap(a,b){ return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom); }
 
-/* --------------- combination detection & perform --------------- */
 function checkCombine(src){
   const rectSrc = getDomRectForId(src.id); if(!rectSrc) return;
   for(const other of instances){
@@ -467,7 +433,6 @@ function removeInstance(id){
   const el = grid.querySelector(`[data-id="${id}"]`); if(el) el.remove();
 }
 
-/* --------------- modal for reaction/result --------------- */
 function showReactionModal(meta, input){
   modalRoot.innerHTML = '';
   const back = document.createElement('div'); back.className='modal-back'; back.onclick = closeModal;
@@ -504,7 +469,6 @@ function viewInstance(inst){
 }
 function closeModal(){ modalRoot.innerHTML = ''; }
 
-/* --------------- view atom with orbit animation --------------- */
 function viewAtom(el){
   modalRoot.innerHTML = '';
   const back = document.createElement('div'); back.className='modal-back'; back.onclick = closeModal;
@@ -516,7 +480,6 @@ function viewAtom(el){
     <div style="margin-top:12px"><button class="btn ghost" id="closeAtomBtn">Fechar</button></div>`;
   back.appendChild(box); modalRoot.appendChild(back);
   document.getElementById('closeAtomBtn').onclick = closeModal;
-  // draw simple orbits
   const container = document.getElementById('atomCanvas');
   const canvas = document.createElement('canvas');
   canvas.width = container.clientWidth || 600; canvas.height = 220;
@@ -526,10 +489,8 @@ function viewAtom(el){
   function anim(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     const cx = canvas.width/2, cy = 110;
-    // nucleus
     ctx.beginPath(); ctx.arc(cx,cy,18,0,Math.PI*2); ctx.fillStyle='#ffd580'; ctx.fill();
     ctx.fillStyle='#50350b'; ctx.font='bold 14px sans-serif'; ctx.textAlign='center'; ctx.fillText(el.symbol, cx, cy+4);
-    // shells
     const shells = [2,8,18,32];
     let remaining = el.z; let radius = 34;
     for(let s=0;s<4 && remaining>0;s++){
@@ -547,7 +508,6 @@ function viewAtom(el){
   anim();
   }
 
-/* --------------- FX particles --------------- */
 let particles = [];
 function burstFx(kind='mix'){
   const rect = stage.getBoundingClientRect();
@@ -562,7 +522,6 @@ function updateFx(){ fx.width = window.innerWidth; fx.height = window.innerHeigh
 }
 updateFx();
 
-/* --------------- export history --------------- */
 function exportHistory(){ const blob = new Blob([JSON.stringify(history,null,2)],{type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='tabela_quimica_history.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
 
 /* --------------- search & UI bindings --------------- */
@@ -584,13 +543,11 @@ collapseBtn.addEventListener('click', ()=>{
   }
 });
 
-/* --------------- initial render + demo atoms --------------- */
 renderSidebar('');
 addInstance({type:'element', symbols:['H'], el: ELEMENTS.find(e=>e.symbol==='H'), x:40, y:40});
 addInstance({type:'element', symbols:['O'], el: ELEMENTS.find(e=>e.symbol==='O'), x:40, y:180});
 addInstance({type:'element', symbols:['Au'], el: ELEMENTS.find(e=>e.symbol==='Au'), x:40, y:320});
 
-/* expose for debugging */
 window.viewInstance = viewInstance;
 window.addInstance = addInstance;
 window.exportHistory = exportHistory;
