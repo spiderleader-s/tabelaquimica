@@ -278,18 +278,20 @@ function svgBlockIcon(el,size=64){
 /* ----------------- Variáveis ----------------- */
 const sidebar = document.getElementById('elementListRoot');
 const stage = document.getElementById('stage'); // área principal
-let draggingElement = null; // mobile
+let draggingElement = null; // para mobile touch
 
 /* ----------------- Render sidebar ----------------- */
 function renderSidebar(q=''){
-  sidebar.innerHTML = '';
+  sidebar.innerHTML = ''; // limpa a barra
   const qq = (q||'').trim().toLowerCase();
 
   for(const el of ELEMENTS){
+    // filtro de pesquisa
     if(qq && !(el.name.toLowerCase().includes(qq) ||
                el.symbol.toLowerCase().includes(qq) ||
                (el.family && el.family.toLowerCase().includes(qq)))) continue;
 
+    // cria a div principal do elemento
     const row = document.createElement('div');
     row.className = 'element element-item';
     row.draggable = true;
@@ -312,18 +314,21 @@ function renderSidebar(q=''){
     badge.className = 'badge ' + familyClass(el.family);
     badge.innerHTML = `<img src="data:image/svg+xml;utf8,${svgBlockIcon(el,56)}" width="56" height="56" alt="${el.symbol}">`;
 
-    const meta = document.createElement('div'); meta.className = 'el-meta';
-    const name = document.createElement('div'); name.className = 'el-name';
-    name.textContent = `${el.symbol} — ${el.name}`;
-    const sub = document.createElement('div'); sub.className = 'el-sub';
+    const meta = document.createElement('div');
+    meta.className = 'el-meta';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'el-name';
+    nameEl.textContent = `${el.symbol} — ${el.name}`;
+    const sub = document.createElement('div');
+    sub.className = 'el-sub';
     sub.textContent = `#${el.z} • ${el.family}`;
-    meta.appendChild(name);
-    meta.appendChild(sub);
 
+    meta.appendChild(nameEl);
+    meta.appendChild(sub);
     row.appendChild(badge);
     row.appendChild(meta);
 
-    sidebar.appendChild(row);
+    sidebar.appendChild(row); // adiciona à barra
   }
 }
 
@@ -360,6 +365,9 @@ window.addEventListener('touchend', ev => {
     draggingElement = null;
   }
 });
+
+/* ----------------- Inicializar ----------------- */
+renderSidebar(); // chama para mostrar os elementos na barra
 
 /* ----------------- Add instance & render ----------------- */
 function addInstance(obj){
