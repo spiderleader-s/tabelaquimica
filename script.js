@@ -277,73 +277,68 @@ function svgBlockIcon(el,size=64){
 
 /* ----------------- Render sidebar ----------------- */
 function renderSidebar(q=''){
-  elementListRoot.innerHTML = '';
+  sidebar.innerHTML = '';
   const qq = (q||'').trim().toLowerCase();
 
   for(const el of ELEMENTS){
-
     if(qq && !(el.name.toLowerCase().includes(qq) ||
                el.symbol.toLowerCase().includes(qq) ||
                (el.family && el.family.toLowerCase().includes(qq)))) continue;
 
     const row = document.createElement('div');
-    row.className = 'element element-item';  // <----- importante
+    row.className = 'element element-item';
     row.draggable = true;
     row.dataset.symbol = el.symbol;
 
-    // ------------------ DRAGSTART DESKTOP (seu código original) ------------------
-    row.ondragstart = ev => {
-      ev.dataTransfer.setData('application/json',
-          JSON.stringify({from:'sidebar', symbol:el.symbol}));
+    // --- dragstart desktop ---
+    row.addEventListener('dragstart', ev => {
+      ev.dataTransfer.setData('spawned', el.symbol);
       ev.dataTransfer.effectAllowed = 'copy';
       if(soundEnabled) sounds.drag.play();
-    };
-
-    // ------------------ DRAGSTART EXTRA (do código que você quer adicionar) ------
-    row.addEventListener("dragstart", ev => {
-      ev.dataTransfer.setData("element", row.dataset.symbol);
     });
 
-    // ------------------ TOUCH SUPORTE (mobile) ----------------------------------
-    row.addEventListener("touchstart", ev => {
-      draggingElement = row.dataset.symbol;
+    // --- touchstart mobile ---
+    row.addEventListener('touchstart', ev => {
+      draggingElement = el.symbol;
     });
 
-    // ------------------------------------------------------------------------------
-
+    // --- visual do elemento ---
     const badge = document.createElement('div');
     badge.className = 'badge ' + familyClass(el.family);
-    badge.innerHTML =
-      `<img src="data:image/svg+xml;utf8,${svgBlockIcon(el,56)}" width="56" height="56" alt="${el.symbol}">`;
+    badge.innerHTML = `<img src="data:image/svg+xml;utf8,${svgBlockIcon(el,56)}" width="56" height="56" alt="${el.symbol}">`;
 
     const meta = document.createElement('div'); meta.className = 'el-meta';
     const name = document.createElement('div'); name.className = 'el-name';
     name.textContent = `${el.symbol} — ${el.name}`;
-
     const sub = document.createElement('div'); sub.className = 'el-sub';
     sub.textContent = `#${el.z} • ${el.family}`;
-
     meta.appendChild(name);
     meta.appendChild(sub);
+
     row.appendChild(badge);
     row.appendChild(meta);
 
-    elementListRoot.appendChild(row);
+    sidebar.appendChild(row);
   }
 }
 
-// ------------------ TOUCHEND GLOBAL (segundo trecho seu) ------------------------
-window.addEventListener("touchend", ev => {
-  if (draggingElement) {
+// --- desktop drop ---
+board.addEventListener('dragover', ev => ev.preventDefault()); // necessário
+board.addEventListener('drop', ev => {
+  ev.preventDefault();
+  const sym = ev.dataTransfer.getData('spawned');
+  if(sym) spawnElementOnBoard(sym, ev.clientX, ev.clientY);
+});
+
+// --- mobile drop (touchend) ---
+window.addEventListener('touchend', ev => {
+  if(draggingElement){
     const touch = ev.changedTouches[0];
-    spawnElementOnBoard(
-      draggingElement,
-      touch.clientX,
-      touch.clientY
-    );
+    spawnElementOnBoard(draggingElement, touch.clientX, touch.clientY);
     draggingElement = null;
   }
 });
+    
 /* ----------------- Stage drop -> add instance ----------------- */
 stage.ondragover = ev => ev.preventDefault();
 stage.ondrop = ev => {
