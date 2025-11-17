@@ -275,6 +275,11 @@ function svgBlockIcon(el,size=64){
   return encodeURIComponent(svg);
 }
 
+/* ----------------- Variáveis ----------------- */
+const sidebar = document.getElementById('elementListRoot');
+const stage = document.getElementById('stage'); // área principal
+let draggingElement = null; // mobile
+
 /* ----------------- Render sidebar ----------------- */
 function renderSidebar(q=''){
   sidebar.innerHTML = '';
@@ -292,7 +297,7 @@ function renderSidebar(q=''){
 
     // --- dragstart desktop ---
     row.addEventListener('dragstart', ev => {
-      ev.dataTransfer.setData('spawned', el.symbol);
+      ev.dataTransfer.setData('application/json', JSON.stringify({from:'sidebar', symbol:el.symbol}));
       ev.dataTransfer.effectAllowed = 'copy';
       if(soundEnabled) sounds.drag.play();
     });
@@ -322,29 +327,13 @@ function renderSidebar(q=''){
   }
 }
 
-// --- desktop drop ---
-board.addEventListener('dragover', ev => ev.preventDefault()); // necessário
-board.addEventListener('drop', ev => {
-  ev.preventDefault();
-  const sym = ev.dataTransfer.getData('spawned');
-  if(sym) spawnElementOnBoard(sym, ev.clientX, ev.clientY);
-});
-
-// --- mobile drop (touchend) ---
-window.addEventListener('touchend', ev => {
-  if(draggingElement){
-    const touch = ev.changedTouches[0];
-    spawnElementOnBoard(draggingElement, touch.clientX, touch.clientY);
-    draggingElement = null;
-  }
-});
-    
-/* ----------------- Stage drop -> add instance ----------------- */
+/* ----------------- Stage drop ----------------- */
 stage.ondragover = ev => ev.preventDefault();
 stage.ondrop = ev => {
   ev.preventDefault();
-  const j = ev.dataTransfer.getData('application/json'); if(!j) return;
-  try{
+  const j = ev.dataTransfer.getData('application/json');
+  if(!j) return;
+  try {
     const p = JSON.parse(j);
     if(p.from === 'sidebar'){
       const el = ELEMENTS.find(x => x.symbol === p.symbol);
@@ -357,6 +346,21 @@ stage.ondrop = ev => {
   } catch(e){ console.error(e); }
 };
 
+/* ----------------- Touchend mobile ----------------- */
+window.addEventListener('touchend', ev => {
+  if(draggingElement){
+    const touch = ev.changedTouches[0];
+    const el = ELEMENTS.find(x => x.symbol === draggingElement);
+    if(el){
+      const rect = stage.getBoundingClientRect();
+      const x = Math.max(8, Math.min(rect.width-180, touch.clientX - rect.left - 40));
+      const y = Math.max(8, Math.min(rect.height-100, touch.clientY - rect.top - 30));
+      addInstance({type:'element', symbols:[el.symbol], el, x, y});
+    }
+    draggingElement = null;
+  }
+});
+
 /* ----------------- Add instance & render ----------------- */
 function addInstance(obj){
   obj.id = uid();
@@ -365,7 +369,12 @@ function addInstance(obj){
 }
 
 function renderInstance(obj){
-  const elDiv = document.createElement('div'); elDiv.className = 'atom-card'; elDiv.dataset.id = obj.id; elDiv.style.left = (obj.x||40) + 'px'; elDiv.style.top = (obj.y||40) + 'px';
+  const elDiv = document.createElement('div');
+  elDiv.className = 'atom-card';
+  elDiv.dataset.id = obj.id;
+  elDiv.style.left = (obj.x||40) + 'px';
+  elDiv.style.top = (obj.y||40) + 'px';
+
   if(obj.type === 'element'){
     const svg64 = svgBlockIcon(obj.el,64);
     elDiv.innerHTML = `<div class="icon-64"><img src="data:image/svg+xml;utf8,${svg64}" width="64" height="64" alt="${obj.el.symbol}"></div>
@@ -374,15 +383,15 @@ function renderInstance(obj){
     const cs = compoundSVG(obj);
     elDiv.innerHTML = `<div class="icon-64"><img src="data:image/svg+xml;utf8,${cs}" width="64" height="64"></div>
       <div class="card-body"><div class="symbol">${obj.name}</div><div class="meta">${obj.kind} • ${obj.state||''}</div></div>`;
-  } else {
-    const wasteSvg = encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect x='6' y='10' width='52' height='44' rx='6' fill='#9ca3af'/><text x='32' y='40' font-size='12' text-anchor='middle' fill='#374151'>lixo</text></svg>`);
-    elDiv.innerHTML = `<div class="icon-64"><img src="data:image/svg+xml;utf8,${wasteSvg}" width="64" height="64"></div>
-      <div class="card-body"><div class="symbol" style="color:#6b7280">lixo</div><div class="meta">Pilha de pó</div></div>`;
   }
+
   grid.appendChild(elDiv);
   makeDraggable(elDiv, obj);
 }
 
+/* ----------------- Inicializar sidebar ----------------- */
+renderSidebar();
+ 
 /* ----------------- Bitgrid small svg ----------------- */
 function renderBitGrid(el){
   const p = blockyPatternFor(el);
