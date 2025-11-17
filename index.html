@@ -1,74 +1,28 @@
 <!doctype html>
-<html lang="pt-BR">
+<html>
 <head>
   <meta charset="utf-8" />
+  <title>Periodic Pixel Combiner - Demo</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>⚛️ Tabela Química</title>
-
-  <!-- Font + UI CDN -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="style.css">
-
-  <!-- Howler.js para som (CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/howler@2.2.3/dist/howler.min.js"></script>
-
-  <!-- three.js para visual 3D (CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <!-- Use the src stylesheet required by the drag/drop module -->
+  <link rel="stylesheet" href="src/styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">⚛️ Tabela Química</div>
-    <div class="subtitle">Arraste elementos — junte para reagir — tema e som configuráveis</div>
+  <header style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+    <h1 style="margin:0;font-size:18px">Periodic Pixel Combiner</h1>
     <div style="flex:1"></div>
     <button id="themeToggle" class="btn ghost">Tema</button>
     <button id="soundToggle" class="btn ghost">Som</button>
     <button id="exportBtn" class="btn">Exportar</button>
   </header>
 
-  <div class="app">
-    <aside class="sidebar" id="sidebar">
-      <div class="sb-top">
-        <input id="search" placeholder="Pesquisar nome, símbolo ou família..." />
-        <button id="collapseBtn" class="btn ghost small">◀</button>
-      </div>
+  <p>Drag elements from the palette into the main area. Move items to combine (2 H + 1 O → water; Fe + O → rusty iron).</p>
 
-      <div id="elementList" class="list" aria-live="polite"></div>
+  <div id="palette" class="palette" aria-label="Element palette"></div>
 
-      <div class="sb-foot">Produced by: Genius</div>
-    </aside>
+  <div id="main" class="main" aria-label="Drop area">Drop elements here</div>
 
-    <main id="stage" class="stage" tabindex="0">
-      <div id="grid" class="grid"></div>
-    </main>
-  </div>
-
-  <canvas id="fxCanvas" class="fx-canvas"></canvas>
-
-  <!-- Modal root -->
-  <div id="modal" class="modal-back" style="display:none;" aria-hidden="true">
-    <div class="modal">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <h3 id="modalTitle">Elemento</h3>
-        <button id="closeModal" class="btn ghost small">Fechar</button>
-      </div>
-
-      <div class="row" style="margin-top:12px">
-        <div style="width:260px">
-          <div class="pill" id="modalInfo" style="white-space:pre-wrap"></div>
-          <div style="margin-top:10px">
-            <button id="show3D" class="btn">Ver átomo 3D (64-bit)</button>
-          </div>
-        </div>
-
-        <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:180px">
-          <!-- Container for three.js renderer -->
-          <div id="viewer" style="width:260px;height:260px"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="script.js" defer></script>
+  <!-- load the drag/drop module (must be served over HTTP for modules to load) -->
+  <script type="module" src="src/drag-drop.js" defer></script>
 </body>
 </html>
