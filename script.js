@@ -276,7 +276,7 @@ function svgBlockIcon(el,size=64){
 }
 
 /* ----------------- Variáveis ----------------- */
-const sidebar = document.getElementById('elementListRoot');
+const sidebar = document.getElementById('elementList');
 const stage = document.getElementById('stage'); // área principal
 let draggingElement = null; // para mobile touch
 
